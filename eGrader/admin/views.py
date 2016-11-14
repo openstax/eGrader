@@ -80,10 +80,10 @@ def edit_user(user_id):
         user.email = form.email.data,
         user.subject_id= form.subject_id.data if form.subject_id.data else None
 
-        if form.roles.data :
+        if form.role_id.data :
             user.roles = []
             db.session.commit()
-            role = Role.query.get(form.roles.data)
+            role = Role.query.get(form.role_id.data)
             user.roles.append(role)
             db.session.add(role)
         else:
