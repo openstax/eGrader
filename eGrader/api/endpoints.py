@@ -119,6 +119,9 @@ def submit_grader_response():
 @api.route('/exercise/unqualified', methods=['POST'])
 @login_required
 def not_qualified():
+    if 'exercise_id' in session and session['exercise_id']:
+        del session['exercise_id']
+
     posted = request.get_json()
     unqual = UserUnqualifiedExercise(
         user_id = posted['user_id'],
