@@ -19,7 +19,7 @@ def update_grading_sessions_end_times():
                 .order_by(ResponseGrade.submitted_on.asc()).first()
 
             session.ended_on = latest_grade.submitted_on
-            session.started_on = first_grade.submitted_on
+
             db.session.add(session)
             db.session.commit()
         else:

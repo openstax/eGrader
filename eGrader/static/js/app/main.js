@@ -148,6 +148,9 @@ var App = {
         let template = _.template(source);
         $container.empty();
         $container.html(template());
+        // record when the graderForm was loaded
+        // technically the time when the grader would start grading
+        this.startedOn = new Date();
 
         activateGraderSubmitButton(this.submitGraderResponse.bind(this));
         this.loadFeedbackOptions(feedbackChoices);
@@ -164,6 +167,8 @@ var App = {
         // backend to save.. maybe better placed in a hidden form field?
         data['user_id'] = this.userId;
         data['session_id'] = this.socketManager.getSessionId();
+        data['started_on'] = this.startedOn;
+        console.log('adding started_on!' + this.responseLoaded);
         console.log('Trying to get sessionId' + this.socketManager.getSessionId());
 
         if (valid) {

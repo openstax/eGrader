@@ -282,6 +282,7 @@ class ResponseGrade(db.Model):
     misconception = db.Column(db.Boolean())
     junk = db.Column(db.Boolean())
     feedback_id = db.Column(db.Integer())
+    started_on = db.Column(db.DateTime())
     submitted_on = db.Column(db.DateTime())
     session_id = db.Column(db.Integer(), db.ForeignKey('user_grading_sessions.id'))
 
@@ -311,7 +312,9 @@ class ResponseGrade(db.Model):
 
     @classmethod
     def latest_by_session_id(cls, session_id):
-        query = db.session.query(cls).filter(cls.session_id == session_id).order_by(cls.submitted_on.desc())
+        query = db.session.query(cls)\
+            .filter(cls.session_id == session_id)\
+            .order_by(cls.submitted_on.desc())
 
         return query.first()
 

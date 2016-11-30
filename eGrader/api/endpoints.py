@@ -108,6 +108,7 @@ def submit_grader_response():
         junk = posted['quality'],
         feedback_id = posted['feedback_id'] if posted['quality'] else None,
         submitted_on = datetime.utcnow(),
+        started_on = posted['started_on'],
         session_id = posted['session_id']
     )
     db.session.add(grade)

@@ -58,7 +58,7 @@ module.exports = {
     plugins: [
         new ManifestRevisionPlugin(path.join('eGrader', 'static', 'manifest.json'), {
             rootAssetPath: rootAssetPath,
-            ignorePaths: ['/css', '/js', '/images', '/pdf', '/build', 'manifest.json']
+            ignorePaths: ['.DS_Store', '/css', '/js', '/images', '/pdf', '/build', 'manifest.json']
         }),
         new ExtractTextPlugin('[name].css'),
         new webpack.NoErrorsPlugin()
