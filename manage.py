@@ -38,8 +38,15 @@ def reset_db():
 
 @manager.command
 def load_exercise_features():
-    from eGrader.tasks.prepare_response_matrix import load_exercise_features
+    from eGrader.tasks.prepare_exercises import load_exercise_features
     load_exercise_features()
+    return
+
+
+@manager.command
+def update_exercise_vocab():
+    from eGrader.tasks.prepare_exercises import update_exercises_vocab
+    update_exercises_vocab()
     return
 
 

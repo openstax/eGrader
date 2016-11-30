@@ -456,6 +456,7 @@ class Exercise(db.Model, JsonSerializer):
     chapter_id = db.Column(db.Integer())
     section_id = db.Column(db.Integer())
     book_row_id = db.Column(db.Integer())
+    vocab = db.Column(ARRAY(db.String()))
 
     responses = db.relationship('Response')
 
