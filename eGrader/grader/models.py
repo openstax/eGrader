@@ -111,6 +111,7 @@ def get_next_response(user_id, exercise_id):
     else:
         responses = Response.all_by_exercise_id(exercise_id)
         forest_name = exercise.forest_name
+        vocab = exercise.vocab
         if forest_name:
             # Load forest and get next best response
             print('load forest')
@@ -120,10 +121,12 @@ def get_next_response(user_id, exercise_id):
             features = np.array(exercise.features)
             obs_idx = np.where(~np.isnan(labels_array))[0]
             print obs_idx
-            forest = train_random_forest(features[obs_idx], labels_array[obs_idx])
+            forest = train_random_forest(features[obs_idx],
+                                         labels_array[obs_idx])
             print forest
             prediction_idx = get_min_var_idx(features,
                                              labels_array,
+                                             vocab,
                                              forest,
                                              global_grade_count_array,
                                              sample_limit=30)

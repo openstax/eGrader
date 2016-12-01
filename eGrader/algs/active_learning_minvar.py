@@ -36,6 +36,7 @@ def get_fit_probabilities(features, forest):
 
 def get_min_var_idx(orig_features,
                     orig_labels_uncorrected,
+                    vocab,
                     orig_forest,
                     global_grade_count,
                     MAX_GLOBAL_GRADES=2,
@@ -47,6 +48,7 @@ def get_min_var_idx(orig_features,
     ----------
     orig_features
     orig_labels
+    vocab
     orig_forest
     global_grade_count -- same dim as orig_labels but counts total grades
     sample_limit
@@ -59,6 +61,11 @@ def get_min_var_idx(orig_features,
     -----
 
     """
+
+    #Some local vals
+    nonsense_word = 'nonsense_word'
+    no_text_word = 'no_text'
+    big_value = 1e6
 
     #Do some data correct in case we are dealing with multi-class stuff
     N = len(orig_labels_uncorrected)
@@ -95,6 +102,19 @@ def get_min_var_idx(orig_features,
     #Penalize short responses (only one tag or less)
     L = np.sum(orig_features[unobs_idx, :] > 0, axis=1)
     undersamp = 1.0*(np.reshape(L, np.prod(L.shape)) <= 1)
+
+    #Do a check for obvious garbage
+    garbage = np.zeros((N0, 1))
+    nonsense_val = np.zeros((N0, 1))
+    empty_val = np.zeros((N0, 1))
+    S = np.nansum(orig_features[unobs_idx, :], axis=1)
+    empty_idx = np.where(vocab == no_text_word)[0]
+    nonsense_idx = np.where(vocab == nonsense_word)[0]
+    if (len(nonsense_idx) > 0):
+        nonsense_val = 1.0*(orig_features[unobs_idx, nonsense_idx[0]] == S)
+    if (len(empty_idx) > 0):
+        empty_val = 1.0 * (orig_features[unobs_idx, empty_idx[0]] > 0)
+    garbage = big_value * (nonsense_val + empty_val)
 
     #Compute the fit probabilities on the unobserved set
     P = get_fit_probabilities(orig_features[unobs_idx, :],
@@ -138,7 +158,7 @@ def get_min_var_idx(orig_features,
     # Final metrix adds penalties to the var_v so that we wont consider
     # responses that fell into those categories if other ones are available
     # This is because var_v <= 0.25 for any classifier with 2 or more classes
-    final_metric = var_v + overgrade + undersamp
+    final_metric = var_v + overgrade + undersamp + garbage
     v_min = np.argmin(final_metric)
     return unobs_idx[v_min]
 
@@ -164,6 +184,7 @@ def train_random_forest(features, labels, num_trees=10):
 
 def update_classifiers_minimum_variance(features,
                                         labels,
+                                        vocab,
                                         ground_truth_labels,
                                         current_forest=None,
                                         sample_limit=None):
@@ -211,6 +232,7 @@ def update_classifiers_minimum_variance(features,
     # Now, find the entry that will minimize expected variance
     selection_idx = get_min_var_idx(features,
                                     labels,
+                                    vocab,
                                     current_forest,
                                     sample_limit)
 

@@ -13,6 +13,7 @@ from nltk.corpus import stopwords
 from nltk.corpus import words
 from nltk.stem.snowball import SnowballStemmer
 import collections
+import string
 
 
 class WordUtility(object):
@@ -31,27 +32,30 @@ class WordUtility(object):
         #Alphabet
         self.alphabet = 'abcdefghijklmnopqrstuvwxyz'
 
+        #Punctuation
+        self.punc_dict = {ord(c): None for c in string.punctuation}
+
         #Reserved tags
         self.reserved_tags = ['numeric_type_hex',
-                              'numeric_type_0'
                               'numeric_type_binary',
                               'numeric_type_octal',
                               'numeric_type_float',
                               'numeric_type_int',
                               'numeric_type_complex',
                               'numeric_type_roman',
-                              'math_type',
-                              'no_text',
-                              'all_stopwords']
+                              'math_type']
 
         #Update the set of nltk words with the additional corpora
         self.all_words = set(words.words())
+        self.all_words.update('a')
+        self.all_words.update('i')
         self.all_words.update(self.reserved_tags)
         self.max_word_length = 20
 
         #Set up the stopwords, remove 'a' due to math issues
         self.stops = set(stopwords.words("english"))
         self.stops.remove('a')
+        self.stops.remove('no')
 
         #Set up the stemmer
         self.st = SnowballStemmer('english')
@@ -62,6 +66,13 @@ class WordUtility(object):
             words_in_file = file(cfile).read()
             self.all_words.update(self.get_all_words(file(cfile).read()))
             train_text = train_text + words_in_file
+
+        #Remove single character terms
+        wordlist = list(self.all_words)
+        wordlist = [i for i in wordlist if len(i) > 1]
+        self.all_words = set(wordlist)
+        self.all_words.update('a')
+        self.all_words.update('i')
 
         self.NWORDS = self.train(self.get_all_words(train_text))
 
@@ -76,6 +87,8 @@ class WordUtility(object):
 
     def spell_correct(self, word):
         if (self.is_numeric(word) in self.reserved_tags):
+            return word
+        if (len(word) <= 3):
             return word
         else:
             candidates = self.known([word]) or self.known(self.edits1(word)) or self.known_edits2(word) or [word]
@@ -106,7 +119,7 @@ class WordUtility(object):
         if(pd.isnull(answer_text)):
             answer_text = ''
         wordlist = answer_text.lower().split()
-        wordlist = [w if isinstance(w, unicode) else unicode(w, errors='ignore') for w in wordlist]
+        wordlist = [unicode(w, errors='ignore') for w in wordlist]
         wordlist = [w[0:min(self.max_word_length, len(w))] for w in wordlist]
 
 
@@ -117,12 +130,12 @@ class WordUtility(object):
         if self.remove_stopwords:
             wordlist = [w for w in wordlist if not w in self.stops]
 
-        if (len(wordlist) == 0):
-            return(list(['all_stopwords']))
-
         #Identify numeric values or math and tag appropriately
+        #If we are not tagging math, we strip punctuation instead
         if self.tag_numeric:
             wordlist = [self.is_numeric(w) for w in wordlist]
+        else:
+            wordlist = [w.translate(self.punc_dict) for w in wordlist]
 
         if self.correct_spelling:
             #wordlist = [Word(w).spellcheck()[0][0] for w in wordlist]
@@ -139,6 +152,9 @@ class WordUtility(object):
 
         if self.stem:
             wordlist = [self.st.stem(w) for w in wordlist]
+            
+        if (len(wordlist) == 0):
+            return(list(['no_text']))
 
         return(wordlist)
 
@@ -154,28 +170,25 @@ class WordUtility(object):
             return "numeric_type_0"
         # Hex/Binary
         litneg = lit[1:] if (lit[0] == '-' and len(lit) > 1) else lit
-        if litneg[0] == '0':
-            if (len(litneg)>1):
-                if litneg[1] in 'xX':
-                    try:
-                        temp = int(lit, 16)
-                        return 'numeric_type_hex'
-                    except ValueError:
-                        pass
-                elif litneg[1] in 'bB':
-                    try:
-                        temp = int(lit, 2)
-                        return 'numeric_type_binary'
-                    except ValueError:
-                        pass
-                else:
-                    try:
-                        temp = int(lit, 8)
-                        return 'numeric_type_octal'
-                    except ValueError:
-                        pass
-            else:
-                return "numeric_type_0"
+#        if litneg[0] == '0':
+#            if litneg[1] in 'xX':
+#                try:
+#                    temp = int(lit, 16)
+#                    return 'numeric_type_hex'
+#                except ValueError:
+#                    pass
+#            elif litneg[1] in 'bB':
+#                try:
+#                    temp = int(lit, 2)
+#                    return 'numeric_type_binary'
+#                except ValueError:
+#                    pass
+#            else:
+#                try:
+#                    temp = int(lit, 8)
+#                    return 'numeric_type_octal'
+#                except ValueError:
+#                    pass
 
         # Int/Float/Complex/Roman
         try:
@@ -193,25 +206,25 @@ class WordUtility(object):
             return 'numeric_type_complex'
         except ValueError:
             pass
-        try:
-            'Return either the type of string if math else return string'
-            a=b=c=d=e=f=g=h=i=j=k=l=m=n=o=p=q=r=s=t=u=v=w=x=y=z=1
-            A=B=C=D=E=F=G=H=I=J=K=L=M=N=O=P=Q=R=S=T=U=V=W=X=Y=Z=1
-            pi = 3.14;
-            temp_lit = lit
-
-            #These three replaces are just to fake out Python . . .
-            temp_lit.replace('^', '**')
-            temp_lit.replace('=', '==')
-            temp_lit.replace('_', '')
-
-            #Find all number-letter-number combos and replace with a single var
-            temp_lit = re.sub('\d*[a-zA-z]\d*', 'x', temp_lit)
-
-            eval(temp_lit)
-            return('math_type')
-        except:
-            pass
+#        try:
+#            'Return either the type of string if math else return string'
+#            a=b=c=d=e=f=g=h=i=j=k=l=m=n=o=p=q=r=s=t=u=v=w=x=y=z=1
+#            A=B=C=D=E=F=G=H=I=J=K=L=M=N=O=P=Q=R=S=T=U=V=W=X=Y=Z=1
+#            pi = 3.14;
+#            temp_lit = lit
+#
+#            #These three replaces are just to fake out Python . . .
+#            temp_lit.replace('^', '**')
+#            temp_lit.replace('=', '==')
+#            temp_lit.replace('_', '')
+#
+#            #Find all number-letter-number combos and replace with a single var
+#            temp_lit = re.sub('\d*[a-zA-z]\d*', 'x', temp_lit)
+#
+#            eval(temp_lit)
+#            return('math_type')
+#        except:
+#            pass
         try:
 
             class RomanError(Exception):
