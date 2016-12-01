@@ -114,6 +114,10 @@ def get_min_var_idx(orig_features,
         nonsense_val = 1.0*(orig_features[unobs_idx, nonsense_idx[0]] == S)
     if (len(empty_idx) > 0):
         empty_val = 1.0 * (orig_features[unobs_idx, empty_idx[0]] > 0)
+    garbage_entries = nonsense_val + empty_val
+    num_okay_entries = len(np.where(garbage_entries == 0)[0])
+    if (num_okay_entries == 0):
+        raise MinVarException
     garbage = big_value * (nonsense_val + empty_val)
 
     #Compute the fit probabilities on the unobserved set
