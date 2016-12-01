@@ -105,7 +105,7 @@ def get_next_response(user_id, exercise_id):
     if exercise.has_unresolved_responses:
         return exercise.get_unresolved_response(user_id)
 
-    elif all(v is None for v in labels):
+    if all(v is None for v in labels):
         response = Response.get_random_ungraded_response(user_id, exercise_id)
         return response
     else:
@@ -140,6 +140,9 @@ def get_next_exercise_id(user_id, subject_id=None, chapter_id=None):
 
     Parameters
     ----------
+    subject_id
+    chapter_id
+    alg
     user_id:int
         the id of the user
 
@@ -177,11 +180,12 @@ def get_next_exercise_id(user_id, subject_id=None, chapter_id=None):
     # Get 100 exercises in random order and get the first that is unresolved.
     exercises = exercises.order_by(func.random()).limit(100).all()
 
+    # Iterate over the 100 exercises for any that are unresolved
     for exercise in exercises:
         if exercise.has_unresolved_responses:
             return exercise.id
-        else:
-            continue
+
+    return exercises[0].id
 
 
 def get_parsed_exercise(exercise_id):

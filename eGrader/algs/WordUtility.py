@@ -119,7 +119,7 @@ class WordUtility(object):
         if(pd.isnull(answer_text)):
             answer_text = ''
         wordlist = answer_text.lower().split()
-        wordlist = [unicode(w, errors='ignore') for w in wordlist]
+        wordlist = [unicode(w.encode('utf-8', errors='replace'), 'utf-8') for w in wordlist]
         wordlist = [w[0:min(self.max_word_length, len(w))] for w in wordlist]
 
 
