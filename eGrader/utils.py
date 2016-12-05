@@ -7,11 +7,26 @@ import requests
 import sqlalchemy as db
 from datetime import datetime
 
-from flask import current_app, Response
+from flask import (current_app,
+                   make_response,
+                   render_template,
+                   Response)
 
 from eGrader.exceptions import api_error_handler
 from jinja2 import Markup
 from sqlalchemy.sql.expression import extract
+
+
+def no_cache(response):
+    response.headers.add(
+        'Cache-Control',
+        'no-store, no-cache, must-revalidate, post-check=0, pre-check=0')
+    return response
+
+
+def render_template_no_cache(*args, **kwargs):
+    response = make_response(render_template(*args, **kwargs))
+    return no_cache(response)
 
 
 def to_csv(field_names, collection):

@@ -33,7 +33,6 @@ Mako==1.0.6
 MarkupSafe==0.23
 nltk==3.2.1
 numpy==1.11.2
-openstax-egrader==0.1.4
 pandas==0.19.1
 paramiko==2.0.2
 passlib==1.7.0

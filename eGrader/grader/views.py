@@ -8,7 +8,7 @@ from flask_security import current_user
 from flask_socketio import emit
 
 from eGrader.grader.forms import GraderForm
-from eGrader.utils import send_slack_msg
+from eGrader.utils import render_template_no_cache, send_slack_msg
 from ..core import db, socketio
 
 from .models import (Exercise,
@@ -109,7 +109,7 @@ def _get_exercise_response():
 @grader.route('/', methods=['GET'])
 @login_required
 def index():
-    return render_template('grader_index.html',
+    return render_template_no_cache('grader_index.html',
                            user_id=current_user.id)
 
 
@@ -117,6 +117,7 @@ def index():
 @login_required
 def old():
     """
+    * DEPRECATED *
     This view is deprecated as it was only used to test javascript and algorithms. This
     form allows you to submit responses simply using html forms and nothing more and is
     not as sophisticated as `grader.index`
