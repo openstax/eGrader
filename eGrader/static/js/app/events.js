@@ -17,7 +17,7 @@ var activateFormWidget = function() {
     // Show options based on Quality for student responses
     $('.quality').on('change', function() {
         var current_quality = $(this).val();
-        console.log(current_quality);
+        // console.log(current_quality);
         if (current_quality == 't' || current_quality == 'null') {
             // Junk   - hide other fields
             $(this).parent().parent().parent().next().hide();
@@ -31,9 +31,8 @@ var activateFormWidget = function() {
 
 var activateMisconceptionWidget = function(){
 
-    console.log('MisconceptionWidget activated!');
     $("input[name='misconception']").on('change', function() {
-        console.log($(this).val());
+        // console.log($(this).val());
         if ($(this).val() == 't') {
             $('.explanation').show()
 

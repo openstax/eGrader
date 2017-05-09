@@ -45,3 +45,7 @@ def api_error_handler(exception, debug=False):
     return APIError('Unable to process this request',
                     exception=exception,
                     debug=debug)
+
+
+class ResponsesNotFound(Exception):
+    pass

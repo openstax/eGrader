@@ -44,7 +44,7 @@ class API {
     submitGradedResponse(data) {
         const resource = 'response/submit';
         var submit;
-        console.log(data);
+        // console.log(data);
         if (!(_.isEmpty(data))) {
             submit = $.ajax({
                 url: this.rootUrl + resource,
@@ -52,7 +52,7 @@ class API {
                 type: 'POST',
                 contentType: "application/json; charset=utf-8"
             });
-            console.log(submit)
+            // console.log(submit)
 
         } else {
             throw new Error('Data could not be submitted')

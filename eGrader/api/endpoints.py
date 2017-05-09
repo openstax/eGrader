@@ -4,6 +4,7 @@ from flask_login import login_required, current_user
 
 from eGrader.algs.active_learning_minvar import MinVarException
 from eGrader.core import db
+from eGrader.exceptions import ResponsesNotFound
 
 from eGrader.grader.models import (ExerciseNote,
                                    get_next_exercise_id,
@@ -46,7 +47,7 @@ def get_next_exercise():
         # Check if the user still has responses to grade for that exercise
         try:
             response = get_next_response(current_user.id, exercise_id)
-        except MinVarException:
+        except (MinVarException, ResponsesNotFound):
             response = None
 
         # If there is a response available return the exercise_id
@@ -80,19 +81,31 @@ def get_next_exercise():
 @login_required
 def next_response():
     exercise_id = request.args.get('exercise_id', None)
-    try:
-        response = get_next_response(current_user.id, exercise_id)
-    except MinVarException:
-        return jsonify(dict(
-            message='There are no more responses available for that exercise',
-            success=False))
 
-    if response:
-        return jsonify(dict(success=True, response=response.to_json()))
-    else:
-        return jsonify(dict(
-            message='There are no more responses available for that exercise',
-            success=False))
+    # Check if they graded the last response. If not return the last one
+    if 'response_id' in session and session['response_id']:
+        response_id = session['response_id']
+        grade = ResponseGrade.by_user_id_and_response_id(current_user.id, response_id)
+        if not grade:
+            response = Response.get(response_id)
+            return jsonify(dict(success=True, response=response.to_json()))
+        else:
+
+            try:
+                response = get_next_response(current_user.id, exercise_id)
+
+            except (MinVarException, ResponsesNotFound):
+                return jsonify(dict(
+                    message='There are no more responses available for that exercise',
+                    success=False))
+
+            if response:
+                session['response_id'] = response.id
+                return jsonify(dict(success=True, response=response.to_json()))
+            else:
+                return jsonify(dict(
+                    message='There are no more responses available for that exercise',
+                    success=False))
 
 
 @api.route('/response/submit', methods=['POST'])

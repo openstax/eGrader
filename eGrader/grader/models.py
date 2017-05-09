@@ -15,8 +15,8 @@ from eGrader.core import db
 
 from sqlalchemy.dialects.postgresql import ARRAY, JSON
 
+from eGrader.exceptions import ResponsesNotFound
 from eGrader.utils import JsonSerializer
-
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -85,6 +85,43 @@ def get_exercise_grade_counts(exercise_id):
 
 def get_next_response(user_id, exercise_id):
     """
+    Get a random ungraded response or throw an exception
+    
+    Parameters
+    ----------
+    user_id : int
+    exercise_id: int
+
+    Returns
+    -------
+    response
+        The response object from a list of responses
+
+    """
+    response = Response.get_random_ungraded_response(user_id, exercise_id,
+                                                     active=True)
+    grades = ResponseGrade.get_grades(user_id, exercise_id, active=True)
+    labels = [int(grade[1]) if grade[1] else grade[1] for grade in grades]
+    labels_array = np.array(labels, dtype=float)
+    unique, counts = np.unique(labels_array[~np.isnan(labels_array)], return_counts=True)
+
+    stats = dict(zip(unique, counts))
+    stats['Total:'] = len(labels)
+
+    log.info(stats)
+
+    if response:
+        return response
+    else:
+        raise ResponsesNotFound()
+
+
+def get_next_smart_response(user_id, exercise_id):
+    """
+    
+    This function is to be used when wanting to compute the minimum variance
+    between different responses and to select a response "smartly". 
+    
     Parameters
     ----------
     user_id : int
@@ -120,7 +157,7 @@ def get_next_response(user_id, exercise_id):
 
     # Need to return response if there are any that are unresolved.
     # If no unresolved get random
-    unresolved = exercise.get_unresolved_response(user_id)
+    unresolved = exercise.get_unresolved_response(user_id, active=True)
 
     if unresolved:
         return unresolved
@@ -168,7 +205,6 @@ def get_next_response(user_id, exercise_id):
             db.session.add(exercise)
             db.session.commit()
 
-
         prediction_idx = get_min_var_idx(features,
                                          labels_array,
                                          vocab,
@@ -213,28 +249,38 @@ def get_next_exercise_id(user_id, subject_id, chapter_id=None):
     """
     # The user subquery used to remove any responses the grader has graded
     user_subq = db.session.query(ResponseGrade.response_id) \
-            .filter(ResponseGrade.user_id == user_id).subquery()
+        .filter(ResponseGrade.user_id == user_id).subquery()
     # The unqualified subquery used to remove any exercises the grader is
     # marked as unqualified to grade.
     unqual_subq = db.session.query(UserUnqualifiedExercise.exercise_id) \
-            .filter(UserUnqualifiedExercise.user_id == user_id).subquery()
+        .filter(UserUnqualifiedExercise.user_id == user_id).subquery()
 
     # The main query that gets distinct counts of all grader criteria
     g_count = db.session.query(Exercise.id.label('exercise_id'),
                                Response.id.label('response_id'),
                                Exercise.subject_id.label('subject_id'),
                                Exercise.chapter_id.label('chapter_id'),
-                               func.count(func.distinct(ResponseGrade.score)).label('score'),
-                               func.count(func.distinct(ResponseGrade.misconception)).label('misconception'),
-                               func.count(func.distinct(ResponseGrade.junk)).label('junk'),
-                               func.count(func.coalesce(ResponseGrade.id, None)).label('total_count'))\
-        .join(Response)\
-        .outerjoin(ResponseGrade)\
-        .filter(~Response.id.in_(user_subq)).filter(~Exercise.id.in_(unqual_subq))\
-        .filter(Exercise.subject_id == subject_id)\
-        .filter(Response.active == True)\
-        .group_by(Exercise.id, Response.id, Exercise.subject_id, Exercise.chapter_id) \
-
+                               func.count(
+                                   func.distinct(ResponseGrade.score)).label(
+                                   'score'),
+                               func.count(func.distinct(
+                                   ResponseGrade.misconception)).label(
+                                   'misconception'),
+                               func.count(
+                                   func.distinct(ResponseGrade.junk)).label(
+                                   'junk'),
+                               func.count(
+                                   func.coalesce(ResponseGrade.id, None)).label(
+                                   'total_count')) \
+        .join(Response) \
+        .outerjoin(ResponseGrade) \
+        .filter(~Response.id.in_(user_subq)).filter(
+        ~Exercise.id.in_(unqual_subq)) \
+        .filter(Exercise.subject_id == subject_id) \
+        .filter(Response.active == True) \
+        .group_by(Exercise.id, Response.id, Exercise.subject_id,
+                  Exercise.chapter_id) \
+ \
     # Filter based on the chapter (optional)
     if chapter_id:
         g_count = g_count.filter(Exercise.chapter_id == chapter_id)
@@ -243,7 +289,7 @@ def get_next_exercise_id(user_id, subject_id, chapter_id=None):
     g_count_one = g_count.having(func.count(
         func.coalesce(ResponseGrade.id, None)) == 1).first()
     log.info('Checking for any exercises for subject {0} in chapter {1} '
-             'that have only 1 grade'.format(subject_id, chapter_id) )
+             'that have only 1 grade'.format(subject_id, chapter_id))
     if g_count_one:
         log.info('Exercise {0} with 1 ungraded response was found'.format(
             g_count_one.exercise_id))
@@ -273,14 +319,14 @@ def get_next_exercise_id(user_id, subject_id, chapter_id=None):
                                   g_count_sub.c.score,
                                   g_count_sub.c.misconception,
                                   g_count_sub.c.junk,
-                                  g_count_sub.c.total_count)\
+                                  g_count_sub.c.total_count) \
             .order_by(g_count_sub.c.total_count.asc())
 
         # Check if there are 2 total grades and if there is any disagreement
         g_count_two = totals.filter(and_(g_count_sub.c.total_count == 2,
-                                        or_(g_count_sub.c.score > 1,
-                                            g_count_sub.c.misconception > 1,
-                                            g_count_sub.c.junk > 1)))
+                                         or_(g_count_sub.c.score > 1,
+                                             g_count_sub.c.misconception > 1,
+                                             g_count_sub.c.junk > 1)))
 
         g_count_two = g_count_two.first()
 
@@ -330,8 +376,6 @@ def get_parsed_exercise(exercise_id):
     -------
 
     """
-
-
     exercise = Exercise.get(exercise_id)
 
     subject = Subject.get(exercise.subject_id)
@@ -354,6 +398,8 @@ def get_parsed_exercise(exercise_id):
             feedback_choices.append(feedback)
         if answer['correctness'] == '1.0':
             answer_html = answer['content_html']
+
+    # Get number of responses
 
     return dict(id=exercise.id,
                 exercise_html=e_data['stem_html'],
@@ -471,7 +517,7 @@ class ResponseGrade(db.Model):
         return query.first()
 
     @classmethod
-    def get_grades(cls, user_id, exercise_id):
+    def get_grades(cls, user_id, exercise_id, active=None):
         expr = case([(cls.junk == True, 0.0)], else_=cls.score)
 
         query = db.session.query(distinct(Response.id), expr) \
@@ -479,11 +525,19 @@ class ResponseGrade(db.Model):
                                  cls.user_id == user_id)) \
             .filter(Response.exercise_id == exercise_id).order_by(Response.id)
 
+        if active:
+            query = query.filter(Response.active == True)
+
         return query.all()
 
     @classmethod
     def by_user_id(cls, user_id):
         return db.session.query(cls).filter(cls.user_id == user_id).all()
+
+    @classmethod
+    def by_user_id_and_response_id(cls, user_id, response_id):
+        return db.session.query(cls).filter(cls.user_id == user_id,
+                                            cls.response_id == response_id).first()
 
 
 class Response(db.Model, JsonSerializer):
@@ -515,11 +569,14 @@ class Response(db.Model, JsonSerializer):
         return db.session.query(cls).get(response_id)
 
     @classmethod
-    def all_by_exercise_id(cls, exercise_id):
-        return db.session.query(cls) \
+    def all_by_exercise_id(cls, exercise_id, active=None):
+        query = db.session.query(cls) \
             .filter(cls.exercise_id == exercise_id) \
-            .order_by(cls.id) \
-            .all()
+            .order_by(cls.id)
+        if active:
+            query = query.filter(cls.active == True)
+
+        return query.all()
 
     @classmethod
     def all_by_exercise_id_excluding_user(cls, exercise_id, user_id):
@@ -530,12 +587,16 @@ class Response(db.Model, JsonSerializer):
             .all()
 
     @classmethod
-    def get_random_ungraded_response(cls, user_id, exercise_id):
+    def get_random_ungraded_response(cls, user_id, exercise_id, active=None):
         subquery = db.session.query(ResponseGrade.response_id) \
             .join(Response).filter(ResponseGrade.user_id == user_id).subquery()
         query = db.session.query(Response).filter(
             Response.exercise_id == exercise_id) \
-            .filter(~Response.id.in_(subquery)).order_by(func.random())
+            .filter(~Response.id.in_(subquery)).filter().order_by(func.random())
+
+        if active:
+            query = query.filter(Response.active == True)
+
         return query.first()
 
     def grade_counts(self):
@@ -656,7 +717,7 @@ class Exercise(db.Model, JsonSerializer):
 
         return unobserved
 
-    def get_unresolved_response(self, user_id):
+    def get_unresolved_response(self, user_id, active=None):
         user_subq = db.session.query(ResponseGrade.response_id) \
             .filter(ResponseGrade.user_id == user_id).subquery()
 
@@ -664,6 +725,10 @@ class Exercise(db.Model, JsonSerializer):
             .filter(Response.exercise_id == self.id) \
             .filter(~Response.id.in_(user_subq)) \
             .all()
+
+        if active:
+            responses = responses.filter(Response.active == True)
+
         for response in responses:
             if response.is_unresolved:
                 return response

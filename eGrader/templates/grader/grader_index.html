@@ -146,6 +146,12 @@
         </form>
         <div class="note-ledger"></div>
       </div>
+      <div class="col-xs-12 col-md-4 col-lg-4" id="debug-box">
+        <div class="debug-info">
+
+
+        </div>
+      </div>
     </div>
   </div>
 
@@ -158,9 +164,10 @@
   <script>
 
     const userId = {{ user_id }};
+    const debug = {{ config['DEBUG'] | lower }};
 
     document.addEventListener("DOMContentLoaded", function (event) {
-      window.App.start(userId);
+      window.App.start(userId, debug);
 
     });
 

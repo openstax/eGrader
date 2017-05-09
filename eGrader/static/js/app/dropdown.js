@@ -17,7 +17,6 @@ class DropDown {
     initEvents() {
         var obj = this;
         this.dd.on('click', '.choice', function(event) {
-            console.log(obj.count);
             if (obj.count == 0) {
                 obj.count ++;
                 obj.choices.children('.inactive').toggle();
@@ -33,7 +32,6 @@ class DropDown {
 
                 if (obj.hiddenField.length) {
                     obj.hiddenField.val($(this).attr('data-value'));
-                    console.log($(this).attr('data-value'))
                 }
 
             }

@@ -13,7 +13,7 @@ from ..core import db, socketio
 
 from .models import (Exercise,
                      get_next_exercise_id,
-                     get_next_response,
+                     get_next_smart_response,
                      get_parsed_exercise,
                      Response,
                      ResponseGrade,
@@ -97,7 +97,7 @@ def _get_exercise_response():
     if 'response' in session and session['response']:
         response = session['response']
     else:
-        response = get_next_response(user_id, exercise_id)
+        response = get_next_smart_response(user_id, exercise_id)
         print ('Printing exercise_id!', exercise_id)
 
     if not response:

@@ -28,7 +28,7 @@ typesetDocument = function() {
   var allNodes, formula, i, len, node, ref;
   allNodes = [];
   ref = document.querySelectorAll(MATH_DATA_SELECTOR);
-    console.log(ref);
+    // console.log(ref);
   for (i = 0, len = ref.length; i < len; i++) {
     node = ref[i];
     formula = node.getAttribute('data-math');
@@ -56,7 +56,7 @@ typesetDocument = _.debounce(typesetDocument, 10);
 
 typesetMath = function(root) {
   var ref, ref1;
-  console.log(root.querySelector(COMBINED_MATH_SELECTOR));
+  // console.log(root.querySelector(COMBINED_MATH_SELECTOR));
   if ((((ref = window.MathJax) != null ? (ref1 = ref.Hub) != null ? ref1.Queue : void 0 : void 0) != null) && root.querySelector(COMBINED_MATH_SELECTOR)) {
       return typesetDocument();
   }
