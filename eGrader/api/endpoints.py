@@ -89,23 +89,22 @@ def next_response():
         if not grade:
             response = Response.get(response_id)
             return jsonify(dict(success=True, response=response.to_json()))
-        else:
 
-            try:
-                response = get_next_response(current_user.id, exercise_id)
+    try:
+        response = get_next_response(current_user.id, exercise_id)
 
-            except (MinVarException, ResponsesNotFound):
-                return jsonify(dict(
-                    message='There are no more responses available for that exercise',
-                    success=False))
+    except (MinVarException, ResponsesNotFound):
+        return jsonify(dict(
+            message='There are no more responses available for that exercise',
+            success=False))
 
-            if response:
-                session['response_id'] = response.id
-                return jsonify(dict(success=True, response=response.to_json()))
-            else:
-                return jsonify(dict(
-                    message='There are no more responses available for that exercise',
-                    success=False))
+    if response:
+        session['response_id'] = response.id
+        return jsonify(dict(success=True, response=response.to_json()))
+    else:
+        return jsonify(dict(
+            message='There are no more responses available for that exercise',
+            success=False))
 
 
 @api.route('/response/submit', methods=['POST'])
