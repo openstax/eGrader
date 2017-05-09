@@ -1,5 +1,31 @@
 from setuptools import find_packages, setup
 
+import pip
+
+try:
+    from setuptools import setup, find_packages
+except ImportError:
+    from distutils.core import setup, find_packages
+
+links = []
+requires = []
+
+try:
+    requirements = pip.req.parse_requirements('requirements.txt')
+except:
+    # new versions of pip requires a session
+    requirements = pip.req.parse_requirements(
+        'requirements.txt', session=pip.download.PipSession())
+
+for item in requirements:
+    # we want to handle package names and also repo urls
+    if getattr(item, 'url', None):  # older pip has url
+        links.append(str(item.url))
+    if getattr(item, 'link', None): # newer pip has link
+        links.append(str(item.link))
+    if item.req:
+        requires.append(str(item.req))
+
 setup(
     name="openstax-egrader",
     version="0.1.4",
@@ -8,67 +34,6 @@ setup(
     py_modules=['wsgi'],
     packages=find_packages(),
     include_package_data=True,
-    install_requires=[
-        "alembic==0.8.8",
-        "bcrypt==3.1.1",
-        "beautifulsoup4==4.5.1",
-        "blinker==1.4",
-        "cffi==1.8.3",
-        "click==6.6",
-        "cryptography==1.5",
-        "dominate==2.2.1",
-        "ecdsa==0.13",
-        "enum34==1.1.6",
-        "factory-boy==2.7.0",
-        "fake-factory==0.7.2",
-        "Flask==0.11.1",
-        "Flask-Bootstrap==3.3.7.0",
-        "Flask-Login==0.3.2",
-        "Flask-Mail==0.9.1",
-        "Flask-Principal==0.4.0",
-        "Flask-Script==2.0.5",
-        "Flask-Security==1.7.5",
-        "Flask-SocketIO==2.7.1",
-        "Flask-SQLAlchemy==2.1",
-        "Flask-Webpack==0.1.0",
-        "Flask-WTF==0.12",
-        "gevent==1.1.2",
-        "gevent-websocket==0.9.5",
-        "greenlet==0.4.10",
-        "idna==2.1",
-        "ipaddress==1.0.17",
-        "itsdangerous==0.24",
-        "Jinja2==2.8",
-        "Mako==1.0.4",
-        "MarkupSafe==0.23",
-        "nltk==3.2.1",
-        "numpy==1.11.1",
-        "pandas==0.18.1",
-        "paramiko==2.0.2",
-        "passlib==1.6.5",
-        "psycopg2==2.6.2",
-        "py==1.4.31",
-        "pyasn1==0.1.9",
-        "pycparser==2.14",
-        "pycrypto==2.6.1",
-        "pytest==3.0.2",
-        "python-dateutil==2.5.3",
-        "python-editor==1.0.1",
-        "python-engineio==1.0.3",
-        "python-socketio==1.5.1",
-        "pytz==2016.6.1",
-        "PyYAML==3.12",
-        "redis==2.10.5",
-        "requests==2.11.1",
-        "scikit-learn==0.17.1",
-        "scipy==0.18.1",
-        "six==1.10.0",
-        "SQLAlchemy==1.0.15",
-        "visitor==0.1.3",
-        "waitress==1.0.0",
-        "WebOb==1.6.1",
-        "WebTest==2.0.23",
-        "Werkzeug==0.11.11",
-        "WTForms==2.1",
-    ]
+    install_requires=requires,
+    dependency_links=links
 )
